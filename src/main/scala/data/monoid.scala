@@ -1,12 +1,7 @@
 package data.monoid
 
-trait Monoid[A] {
-  def append(a1: A, a2: A): A
+trait Monoid[A] extends data.semigroup.Semigroup[A] {
   def unit: A
-  class InfixSemigroup(a1: A) {
-    def ⋅(a2: A): A = Monoid.this.append(a1, a2)
-  }
-  implicit def infix(a1: A) = new InfixSemigroup(a1)
 }
 
 class ListMonoid[A] extends Monoid[List[A]] {
