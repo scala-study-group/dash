@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/scala-study-group/dash.png?branch=master)](https://travis-ci.org/scala-study-group/dash)
+
 ## Testing
 
 1. Install [sbt](http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html)
