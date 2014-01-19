@@ -115,4 +115,15 @@ class FPiSTests extends FunSuite {
     assert(idMonad.flatMap(Id(2))(x => Id(x * 21)) === Id(42))
   }
 
+  test("exercise 21") {
+    // EXERCISE 21: To cement your understanding of monads, give a monad
+    // instance for the following type, and explain what it means.
+
+    val plus  = { x: Int => Reader({ y: Int => x + y }) }
+    val times = { x: Int => Reader({ y: Int => x * y }) }
+
+    assert(readerMonad.unit(42).run(123) === 42)
+    assert(readerMonad.flatMap(plus(19))(times).run(2) === 42)
+  }
+
 }

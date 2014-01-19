@@ -32,6 +32,8 @@ trait Monad[F[_]] extends Functor[F] {
     flatMap(mma)(fa => fa)
 }
 
+case class Reader[A,B](run: A => B)
+
 object Monad {
 
   type State[S,+A] = S => (A,S)
@@ -83,4 +85,9 @@ object Monad {
     }
   }
 
+  def readerMonad[A] = new Monad[({type λ[α] = Reader[A,α]})#λ] {
+    def unit[B](b: => B): Reader[A,B] = Reader(a => b)
+    def flatMap[B,C](r: Reader[A,B])(f: B => Reader[A,C]): Reader[A,C] =
+      Reader(a => f(r.run(a)).run(a))
+  }
 }
