@@ -1,6 +1,6 @@
-package data.monoid
+package data
 
-trait Monoid[A] extends data.semigroup.Semigroup[A] {
+trait Monoid[A] extends data.Semigroup[A] {
   def unit: A
 }
 

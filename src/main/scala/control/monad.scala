@@ -1,26 +1,11 @@
-package control.monad
+package control
 
-import data.functor.Functor
+import Applicative._
+import data.Functor
+import data.Reader
 
-trait Monad[F[_]] extends Functor[F] {
-  def unit[A](a: => A): F[A]
+trait Monad[F[_]] extends Applicative[F] {
   def flatMap[A,B](ma: F[A])(f: A => F[B]): F[B]
-
-  def map[A,B](ma: F[A])(f: A => B): F[B] =
-    flatMap(ma)(a => unit(f(a)))
-  def map2[A,B,C](ma: F[A], mb: F[B])(f: (A, B) => C): F[C] =
-    flatMap(ma)(a => map(mb)(b => f(a, b)))
-
-  def sequence[A](lma: List[F[A]]): F[List[A]] =
-    traverse(lma)(identity)
-
-  def traverse[A,B](la: List[A])(f: A => F[B]): F[List[B]] =
-    la.reverse.foldLeft(unit(List.empty[B]))((flb,a) => flatMap(f(a))(b => map(flb)(lb => b :: lb)))
-
-  def replicateM[A](n: Int, ma: F[A]): F[List[A]] =
-    sequence((1 to n).map(_ => ma).toList)
-
-  def product[A,B](ma: F[A], mb: F[B]): F[(A, B)] = map2(ma, mb)((_, _))
 
   def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] =
     ms.reverse.foldLeft(unit(List.empty[A]))((fla,a) => flatMap(f(a))(x => if (x) map(fla)(la => a :: la) else fla))
@@ -32,43 +17,30 @@ trait Monad[F[_]] extends Functor[F] {
     flatMap(mma)(fa => fa)
 }
 
-case class Reader[A,B](run: A => B)
-
 object Monad {
 
   type State[S,+A] = S => (A,S)
 
-/*
-  val genMonad = new Monad[Gen] {
-    def unit[A](a: => A): Gen[A] = Gen.unit(a)
-    def flatMap[A,B](ma: Gen[A])(f: A => Gen[B]): Gen[B] =
-      ma flatMap f
-  }
-*/
-
-//  val parMonad = new Monad[Par]
-//  val parserMonad = new Monad[Parser]
-
-  val optionMonad = new Monad[Option] {
-    def unit[A](a: => A): Option[A] = Option(a)
+  val optionM = new OptionMonad
+  class OptionMonad extends OptionApplicative with Monad[Option] {
     def flatMap[A,B](ma: Option[A])(f: A => Option[B]): Option[B] =
       ma flatMap f
   }
 
-  val streamMonad = new Monad[Stream] {
-    def unit[A](a: => A): Stream[A] = Stream(a)
+  val streamM = new StreamMonad
+  class StreamMonad extends StreamApplicative with Monad[Stream] {
     def flatMap[A,B](ma: Stream[A])(f: A => Stream[B]): Stream[B] =
       ma flatMap f
   }
 
-  val listMonad = new Monad[List] {
-    def unit[A](a: => A): List[A] = List(a)
+  val listM = new ListMonad
+  class ListMonad extends ListApplicative with Monad[List] {
     def flatMap[A,B](ma: List[A])(f: A => List[B]): List[B] =
       ma flatMap f
   }
 
-  def stateMonad[S] = new Monad[({type λ[α] = State[S,α]})#λ] {
-    def unit[A](a: => A): State[S,A] = { s => (a,s) }
+  def stateM[S] = new StateMonad[S]
+  class StateMonad[S] extends StateApplicative[S] with Monad[({type λ[α] = State[S,α]})#λ] {
     def flatMap[A,B](ma: State[S,A])(f: A => State[S,B]): State[S,B] =
       { s =>
         val (a, s2) = ma(s)
@@ -76,18 +48,26 @@ object Monad {
       }
   }
 
-  def idMonad[A] = {
+  val idM = new IdMonad
+  class IdMonad extends IdApplicative with Monad[data.Id] {
     import data.Id
-    new Monad[Id] {
-      def unit[A](a: => A): Id[A] = Id(a)
-      def flatMap[A,B](ma: Id[A])(f: A => Id[B]): Id[B] =
-        ma flatMap f
-    }
+    def flatMap[A,B](ma: Id[A])(f: A => Id[B]): Id[B] =
+      ma flatMap f
   }
 
-  def readerMonad[A] = new Monad[({type λ[α] = Reader[A,α]})#λ] {
-    def unit[B](b: => B): Reader[A,B] = Reader(a => b)
-    def flatMap[B,C](r: Reader[A,B])(f: B => Reader[A,C]): Reader[A,C] =
+  def readerM[R] = new ReaderMonad[R]
+  class ReaderMonad[R] extends ReaderApplicative[R] with Monad[({type λ[α] = Reader[R,α]})#λ] {
+    def flatMap[B,C](r: Reader[R,B])(f: B => Reader[R,C]): Reader[R,C] =
       Reader(a => f(r.run(a)).run(a))
+  }
+
+  def eitherM[E]: Monad[({type f[x] = Either[E, x]})#f] = new EitherMonad[E]
+  class EitherMonad[E] extends EitherApplicative[E] with Monad[({type f[x] = Either[E, x]})#f] {
+    def flatMap[A,B](ma: Either[E,A])(f: A => Either[E,B]): Either[E,B] =
+      ma match {
+        case Left(l) => Left(l)
+        case Right(a) => f(a)
+      }
+
   }
 }

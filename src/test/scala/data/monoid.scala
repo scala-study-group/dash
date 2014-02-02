@@ -1,4 +1,4 @@
-package data.monoid
+package data
 
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll
