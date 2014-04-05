@@ -5,7 +5,16 @@ import data.Functor
 import data.Reader
 
 trait Monad[F[_]] extends Applicative[F] {
+
+  def unit[A](a: => A): F[A]
+
   def flatMap[A,B](ma: F[A])(f: A => F[B]): F[B]
+
+  override def map2[A,B,C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] =
+    flatMap(fa)({ a => map(fb)( { b => f(a,b) } ) } )
+
+  override def map[A,B](ma: F[A])(f: A => B) =
+    flatMap(ma)(a => unit(f(a)))
 
   def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] =
     ms.reverse.foldLeft(unit(List.empty[A]))((fla,a) => flatMap(f(a))(x => if (x) map(fla)(la => a :: la) else fla))

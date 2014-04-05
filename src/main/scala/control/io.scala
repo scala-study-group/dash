@@ -24,7 +24,8 @@ object IO {
   class IOMonad[F[_]] extends Monad[({ type f[a] = IO[F,a]})#f] {
 
     def unit[A](a: => A): IO[F,A] = Pure(a)
-    def map2[A,B,C](fa: IO[F,A], fb: IO[F,B])(f: (A, B) => C): IO[F,C] =
+
+    override def map2[A,B,C](fa: IO[F,A], fb: IO[F,B])(f: (A, B) => C): IO[F,C] =
       fa match {
         case Pure(a) =>
           fb match {
@@ -39,7 +40,6 @@ object IO {
       }
 
     def flatMap[A,B](ma: IO[F,A])(f: A => IO[F,B]): IO[F,B] =  ???
-
   }
 
 }
